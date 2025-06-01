@@ -7,7 +7,6 @@ from openpyxl.styles import Border, Side
 
 load_dotenv()
 FOLDER_PATH = os.getenv("FOLDER_PATH")
-SHEET_NAME2 = os.getenv("SHEET_NAME2")
 
 WRITE_START_ROW = 12 # adjust your excel sheets
 
@@ -42,7 +41,7 @@ def write_code_with_pd(edit_file_name, sheet_name, read_file_name):
         print(e)
         exit()
 
-def refresh_rows_in_print_area(file_name, read_file_name):
+def refresh_rows_in_print_area(file_name, sheet_name, read_file_name):
     target_path = f'{FOLDER_PATH}/{file_name}'
 
     code_lines = read_code(read_file_name)
@@ -54,10 +53,10 @@ def refresh_rows_in_print_area(file_name, read_file_name):
 
     try:
         workbook = load_workbook(target_path)
-        if SHEET_NAME2 not in workbook.sheetnames:
+        if sheet_name not in workbook.sheetnames:
             print("target sheet does not exist")
             exit()
-        sheet = workbook[SHEET_NAME2]
+        sheet = workbook[sheet_name]
         if not sheet.print_area:
             print("print area does not exist")
             exit()
@@ -75,7 +74,7 @@ def refresh_rows_in_print_area(file_name, read_file_name):
         print(e)
         exit()
 
-def refresh_rows_have_data(file_name, read_file_name):
+def refresh_rows_have_data(file_name, sheet_name, read_file_name):
     target_path = f'{FOLDER_PATH}/{file_name}'
 
     code_lines = read_code(read_file_name)
@@ -87,10 +86,10 @@ def refresh_rows_have_data(file_name, read_file_name):
 
     try:
         workbook = load_workbook(target_path)
-        if SHEET_NAME2 not in workbook.sheetnames:
+        if sheet_name not in workbook.sheetnames:
             print("target sheet does not exist")
             exit()
-        sheet = workbook[SHEET_NAME2]
+        sheet = workbook[sheet_name]
 
         last_data_row = sheet.max_row
         delete_lines = last_data_row - WRITE_START_ROW+ 1
@@ -117,9 +116,9 @@ def write_rows_with_pyxl(edit_file_name, sheet_name, read_file_name):
 
     wb.save(target_path)
 
-def apply_lattice(file_name, start_row, end_row, start_col, end_col):
+def apply_lattice(file_name, sheet_name, start_row, end_row, start_col, end_col):
     wb = load_workbook(f"{FOLDER_PATH}/{file_name}")
-    ws = wb[SHEET_NAME2]
+    ws = wb[sheet_name]
 
     lattice = Border(top=Side(style="thin"), bottom=Side(style="thin"), right=Side(style="thin"), left=Side(style="thin"))
 
