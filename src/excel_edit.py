@@ -1,0 +1,150 @@
+import os
+import pandas as pd
+from dotenv import load_dotenv
+from openpyxl import load_workbook
+from openpyxl.utils import cell
+from openpyxl.styles import Border, Side
+
+load_dotenv()
+FOLDER_PATH = os.getenv("FOLDER_PATH")
+SHEET_NAME2 = os.getenv("SHEET_NAME2")
+
+WRITE_START_ROW = 12 # adjust your excel sheets
+
+def read_code(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            read_line = f.readlines()
+        return [line.rstrip('\n') for line in read_line]
+    except FileNotFoundError:
+        print("target code file not found")
+        exit()
+
+def write_code_with_pd(edit_file_name, sheet_name, read_file_name):
+    target_path = f'{FOLDER_PATH}/{edit_file_name}'
+
+    start_row = 10
+    start_col = 2
+
+    code_lines = read_code(read_file_name)
+    df_code = pd.DataFrame(code_lines, columns=['code'])
+
+    try:
+        if os.path.exists(target_path):
+            with pd.ExcelWriter(target_path, engine='openpyxl', mode='a', if_sheet_exists="overlay") as writer:
+                if sheet_name not in writer.book.sheetnames:
+                    writer.book.create_sheet(sheet_name)
+                df_code.to_excel(writer, sheet_name=sheet_name, index=False, startrow=start_row, startcol=start_col)
+
+        else:
+            print("excel file not found")
+    except Exception as e:
+        print(e)
+        exit()
+
+def refresh_rows_in_print_area(file_name, read_file_name):
+    target_path = f'{FOLDER_PATH}/{file_name}'
+
+    code_lines = read_code(read_file_name)
+    insert_num = len(code_lines)
+
+    if not os.path.exists(target_path):
+        print("target code file not found")
+        exit()
+
+    try:
+        workbook = load_workbook(target_path)
+        if SHEET_NAME2 not in workbook.sheetnames:
+            print("target sheet does not exist")
+            exit()
+        sheet = workbook[SHEET_NAME2]
+        if not sheet.print_area:
+            print("print area does not exist")
+            exit()
+
+        _, _, _, max_row = cell.range_boundaries(sheet.print_area)
+        delete_lines = max_row - WRITE_START_ROW + 1
+        sheet.delete_rows(idx=delete_lines, amount=delete_lines)
+        print("deleted lines")
+
+        sheet.insert_rows(idx=WRITE_START_ROW, amount=insert_num)
+        print("inserted lines")
+
+        workbook.save(target_path)
+    except Exception as e:
+        print(e)
+        exit()
+
+def refresh_rows_have_data(file_name, read_file_name):
+    target_path = f'{FOLDER_PATH}/{file_name}'
+
+    code_lines = read_code(read_file_name)
+    insert_num = len(code_lines)
+
+    if not os.path.exists(target_path):
+        print("target code file not found")
+        exit()
+
+    try:
+        workbook = load_workbook(target_path)
+        if SHEET_NAME2 not in workbook.sheetnames:
+            print("target sheet does not exist")
+            exit()
+        sheet = workbook[SHEET_NAME2]
+
+        last_data_row = sheet.max_row
+        delete_lines = last_data_row - WRITE_START_ROW+ 1
+        sheet.delete_rows(idx=WRITE_START_ROW, amount=delete_lines)
+        print(f"deleted {delete_lines} lines, until {last_data_row} row")
+
+        sheet.insert_rows(idx=WRITE_START_ROW, amount=insert_num)
+        print("inserted lines")
+
+        workbook.save(target_path)
+    except Exception as e:
+        print(e)
+        exit()
+
+def write_rows_with_pyxl(edit_file_name, sheet_name, read_file_name):
+    target_path = f'{FOLDER_PATH}/{edit_file_name}'
+    code_lines = read_code(read_file_name)
+
+    wb = load_workbook(target_path)
+    ws = wb[sheet_name]
+
+    for idx, line in enumerate(code_lines):
+        ws[f"C{WRITE_START_ROW+idx}"] = line
+
+    wb.save(target_path)
+
+def apply_lattice(file_name, start_row, end_row, start_col, end_col):
+    wb = load_workbook(f"{FOLDER_PATH}/{file_name}")
+    ws = wb[SHEET_NAME2]
+
+    lattice = Border(top=Side(style="thin"), bottom=Side(style="thin"), right=Side(style="thin"), left=Side(style="thin"))
+
+    # left and right side border
+    for row in range(start_row, end_row+1):
+        ws.cell(row=row, column=start_col).border = Border(left=lattice.left)
+        ws.cell(row=row, column=end_col).border = Border(right=lattice.right)
+
+    # top and bottom side border
+    for col in range(start_col, end_col+1):
+        if col == start_col:
+            ws.cell(row=start_row, column=col).border = Border(left=lattice.left, top=lattice.top)
+            ws.cell(row=end_row, column=col).border = Border(left=lattice.left, bottom=lattice.top)
+        elif col == end_col:
+            ws.cell(row=start_row, column=col).border = Border(right=lattice.left, top=lattice.top)
+            ws.cell(row=end_row, column=col).border = Border(right=lattice.left, bottom=lattice.top)
+        else:
+            ws.cell(row=start_row, column=col).border = Border(top=lattice.top)
+            ws.cell(row=end_row, column=col).border = Border(bottom=lattice.bottom)
+
+    wb.save(f"{FOLDER_PATH}/{file_name}")
+
+def change_sheet_name(edit_file_name, target_sheet_name, new_sheet_name):
+    target_path = f'{FOLDER_PATH}/{edit_file_name}'
+    wb = load_workbook(target_path)
+    ws = wb[target_sheet_name]
+    ws.title = new_sheet_name
+    wb.save(target_path)
