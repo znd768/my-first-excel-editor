@@ -42,7 +42,7 @@ def xlsx_rename(old_path, new_name):
         print(e)
         exit()
 
-if __name__ == '__main__':
+def create_xlsx():
     csv_read = read_input()
 
     if not os.path.exists(FOLDER_PATH):
@@ -52,3 +52,6 @@ if __name__ == '__main__':
         tmp_path = os.path.join(FOLDER_PATH, f"tmp_{num}.xlsx")
         xlsx_copy(ORIGINAL_EXCEL_PATH, tmp_path)
         xlsx_rename(tmp_path, f"{num}_{row["name"]}.xlsx")
+
+if __name__ == '__main__':
+    create_xlsx()
