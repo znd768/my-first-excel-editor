@@ -9,12 +9,12 @@ FOLDER_PATH = os.getenv("FOLDER_PATH")
 
 def read_input():
     ret = []
+    keys = ["name", "repository_name", "branch_name"]
     try:
         with open("input.csv", "r") as f:
             csv_reader = csv.reader(f)
             for row in csv_reader:
-                if row and row[0]:
-                    ret.append(row[0].strip())
+                ret.append(dict(zip(keys, [val.strip() for val in row])))
         return ret
     except FileNotFoundError:
         print("csv file not found")
@@ -43,12 +43,12 @@ def xlsx_rename(old_path, new_name):
         exit()
 
 if __name__ == '__main__':
-    names = read_input()
+    csv_read = read_input()
 
     if not os.path.exists(FOLDER_PATH):
         os.makedirs(FOLDER_PATH)
 
-    for num, name in enumerate(names, start=1):
+    for num, row in enumerate(csv_read, start=1):
         tmp_path = os.path.join(FOLDER_PATH, f"tmp_{num}.xlsx")
         xlsx_copy(ORIGINAL_EXCEL_PATH, tmp_path)
-        xlsx_rename(tmp_path, f"{num}_{name}.xlsx")
+        xlsx_rename(tmp_path, f"{num}_{row["name"]}.xlsx")
