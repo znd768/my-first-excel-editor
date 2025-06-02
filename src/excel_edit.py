@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from openpyxl import load_workbook
 from openpyxl.utils import cell
 from openpyxl.styles import Border, Side
+from openpyxl.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 
 load_dotenv()
 FOLDER_PATH = os.getenv("FOLDER_PATH")
@@ -141,9 +143,21 @@ def apply_lattice(file_name, sheet_name, start_row, end_row, start_col, end_col)
 
     wb.save(f"{FOLDER_PATH}/{file_name}")
 
-def change_sheet_name(edit_file_name, target_sheet_name, new_sheet_name):
-    target_path = f'{FOLDER_PATH}/{edit_file_name}'
-    wb = load_workbook(target_path)
-    ws = wb[target_sheet_name]
+def change_sheet_name(ws: Worksheet, new_sheet_name: str) -> None:
+    if len(new_sheet_name) > 31:
+        new_sheet_name = new_sheet_name[:31]
     ws.title = new_sheet_name
-    wb.save(target_path)
+
+def write_cell(ws: Worksheet, target_cell: str, data: int | str) -> None:
+    ws[target_cell] = data
+
+def read_sheet(file_name: str, sheet_name: str) -> Worksheet:
+    target_path = os.path.join(FOLDER_PATH, file_name)
+    try:
+        wb: Workbook = load_workbook(target_path)
+        ws: Worksheet = wb[sheet_name]
+        return ws
+    except Exception as e:
+        print("anything went wrong in read_sheet")
+        print(e)
+        exit()
