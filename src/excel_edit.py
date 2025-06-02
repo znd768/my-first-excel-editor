@@ -3,7 +3,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from openpyxl import load_workbook
 from openpyxl.utils import cell
-from openpyxl.styles import Border, Side
+from openpyxl.styles import Border, Side, Font
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -106,22 +106,13 @@ def refresh_rows_have_data(file_name, sheet_name, read_file_name):
         print(e)
         exit()
 
-def write_rows_with_pyxl(edit_file_name, sheet_name, read_file_name):
-    target_path = f'{FOLDER_PATH}/{edit_file_name}'
+def write_rows_with_pyxl(ws: Worksheet, read_file_name: str):
     code_lines = read_code(read_file_name)
-
-    wb = load_workbook(target_path)
-    ws = wb[sheet_name]
 
     for idx, line in enumerate(code_lines):
         ws[f"C{WRITE_START_ROW+idx}"] = line
 
-    wb.save(target_path)
-
-def apply_lattice(file_name, sheet_name, start_row, end_row, start_col, end_col):
-    wb = load_workbook(f"{FOLDER_PATH}/{file_name}")
-    ws = wb[sheet_name]
-
+def apply_square_lattice(ws: Worksheet, start_row, end_row, start_col, end_col):
     lattice = Border(top=Side(style="thin"), bottom=Side(style="thin"), right=Side(style="thin"), left=Side(style="thin"))
 
     # left and right side border
@@ -141,7 +132,33 @@ def apply_lattice(file_name, sheet_name, start_row, end_row, start_col, end_col)
             ws.cell(row=start_row, column=col).border = Border(top=lattice.top)
             ws.cell(row=end_row, column=col).border = Border(bottom=lattice.bottom)
 
-    wb.save(f"{FOLDER_PATH}/{file_name}")
+def apply_formatted_lattice(ws: Worksheet, row_num: int):
+    lattice = Border(top=Side(style="thin"), bottom=Side(style="thin"), right=Side(style="thin"), left=Side(style="thin"))
+    for num in range(row_num+1):
+        row = num+9
+        if row == 9:
+            ws.cell(row=row, column=2).border = Border(left=lattice.left, right=lattice.right)
+            ws.cell(row=row, column=3).border = Border(left=lattice.left, top=lattice.top, right=lattice.right)
+            ws.cell(row=row, column=12).border = Border(top=lattice.top, right=lattice.right)
+            ws.cell(row=row, column=16).border = Border(top=lattice.top, right=lattice.right)
+        elif row == row_num+9:
+            ws.cell(row=row, column=2).border = Border(left=lattice.left, right=lattice.right, bottom=lattice.bottom)
+            ws.cell(row=row, column=3).border = Border(left=lattice.left, right=lattice.right, bottom=lattice.bottom)
+            ws.cell(row=row, column=12).border = Border(right=lattice.right, bottom=lattice.bottom)
+            ws.cell(row=row, column=16).border = Border(right=lattice.right, bottom=lattice.bottom)
+        else:
+            ws.cell(row=row, column=2).border = Border(left=lattice.left, right=lattice.right)
+            ws.cell(row=row, column=3).border = Border(left=lattice.left, right=lattice.right)
+            ws.cell(row=row, column=12).border = Border(right=lattice.right)
+            ws.cell(row=row, column=16).border = Border(right=lattice.right)
+
+    for row in ws.iter_rows(min_row=9, max_row=row_num+9, min_col=4, max_col=16):
+        for cell in row:
+            cell.border = Border(top=Side(style="thin"), bottom=Side(style="thin"))
+
+    for row in range(row_num+1):
+        ws.cell(row=row+9, column=12).border = Border(right=lattice.right, top=lattice.top, bottom=lattice.bottom)
+        ws.cell(row=row+9, column=16).border = Border(right=lattice.right, top=lattice.top, bottom=lattice.bottom)
 
 def change_sheet_name(ws: Worksheet, new_sheet_name: str) -> None:
     if len(new_sheet_name) > 31:
@@ -150,14 +167,3 @@ def change_sheet_name(ws: Worksheet, new_sheet_name: str) -> None:
 
 def write_cell(ws: Worksheet, target_cell: str, data: int | str) -> None:
     ws[target_cell] = data
-
-def read_sheet(file_name: str, sheet_name: str) -> Worksheet:
-    target_path = os.path.join(FOLDER_PATH, file_name)
-    try:
-        wb: Workbook = load_workbook(target_path)
-        ws: Worksheet = wb[sheet_name]
-        return ws
-    except Exception as e:
-        print("anything went wrong in read_sheet")
-        print(e)
-        exit()
