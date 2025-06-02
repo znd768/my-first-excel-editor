@@ -3,14 +3,14 @@ import pandas as pd
 from dotenv import load_dotenv
 from openpyxl import load_workbook
 from openpyxl.utils import cell
-from openpyxl.styles import Border, Side, Font
+from openpyxl.styles import Border, Side, Font, PatternFill
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
 load_dotenv()
 FOLDER_PATH = os.getenv("FOLDER_PATH")
 
-WRITE_START_ROW = 12 # adjust your excel sheets
+WRITE_START_ROW = 9 # adjust your excel sheets
 
 def read_code(file_path):
     try:
@@ -76,32 +76,17 @@ def refresh_rows_in_print_area(file_name, sheet_name, read_file_name):
         print(e)
         exit()
 
-def refresh_rows_have_data(file_name, sheet_name, read_file_name):
-    target_path = f'{FOLDER_PATH}/{file_name}'
-
+def refresh_rows_have_data(ws: Worksheet, read_file_name: str):
     code_lines = read_code(read_file_name)
     insert_num = len(code_lines)
-
-    if not os.path.exists(target_path):
-        print("target code file not found")
-        exit()
-
     try:
-        workbook = load_workbook(target_path)
-        if sheet_name not in workbook.sheetnames:
-            print("target sheet does not exist")
-            exit()
-        sheet = workbook[sheet_name]
-
-        last_data_row = sheet.max_row
+        last_data_row = ws.max_row
         delete_lines = last_data_row - WRITE_START_ROW+ 1
-        sheet.delete_rows(idx=WRITE_START_ROW, amount=delete_lines)
+        ws.delete_rows(idx=WRITE_START_ROW, amount=delete_lines)
         print(f"deleted {delete_lines} lines, until {last_data_row} row")
 
-        sheet.insert_rows(idx=WRITE_START_ROW, amount=insert_num)
+        ws.insert_rows(idx=WRITE_START_ROW, amount=insert_num)
         print("inserted lines")
-
-        workbook.save(target_path)
     except Exception as e:
         print(e)
         exit()
@@ -110,7 +95,9 @@ def write_rows_with_pyxl(ws: Worksheet, read_file_name: str):
     code_lines = read_code(read_file_name)
 
     for idx, line in enumerate(code_lines):
-        ws[f"C{WRITE_START_ROW+idx}"] = line
+        ws[f"D{WRITE_START_ROW+idx}"] = line
+        font = Font(bold=False, name="Arial", size=10)
+        ws[f"D{WRITE_START_ROW+idx}"].font = font
 
 def apply_square_lattice(ws: Worksheet, start_row, end_row, start_col, end_col):
     lattice = Border(top=Side(style="thin"), bottom=Side(style="thin"), right=Side(style="thin"), left=Side(style="thin"))
@@ -135,13 +122,13 @@ def apply_square_lattice(ws: Worksheet, start_row, end_row, start_col, end_col):
 def apply_formatted_lattice(ws: Worksheet, row_num: int):
     lattice = Border(top=Side(style="thin"), bottom=Side(style="thin"), right=Side(style="thin"), left=Side(style="thin"))
     for num in range(row_num+1):
-        row = num+9
-        if row == 9:
+        row = num + WRITE_START_ROW
+        if row == WRITE_START_ROW:
             ws.cell(row=row, column=2).border = Border(left=lattice.left, right=lattice.right)
             ws.cell(row=row, column=3).border = Border(left=lattice.left, top=lattice.top, right=lattice.right)
             ws.cell(row=row, column=12).border = Border(top=lattice.top, right=lattice.right)
             ws.cell(row=row, column=16).border = Border(top=lattice.top, right=lattice.right)
-        elif row == row_num+9:
+        elif row == row_num + WRITE_START_ROW:
             ws.cell(row=row, column=2).border = Border(left=lattice.left, right=lattice.right, bottom=lattice.bottom)
             ws.cell(row=row, column=3).border = Border(left=lattice.left, right=lattice.right, bottom=lattice.bottom)
             ws.cell(row=row, column=12).border = Border(right=lattice.right, bottom=lattice.bottom)
@@ -152,13 +139,13 @@ def apply_formatted_lattice(ws: Worksheet, row_num: int):
             ws.cell(row=row, column=12).border = Border(right=lattice.right)
             ws.cell(row=row, column=16).border = Border(right=lattice.right)
 
-    for row in ws.iter_rows(min_row=9, max_row=row_num+9, min_col=4, max_col=16):
+    for row in ws.iter_rows(min_row=WRITE_START_ROW, max_row=row_num+WRITE_START_ROW, min_col=4, max_col=16):
         for cell in row:
             cell.border = Border(top=Side(style="thin"), bottom=Side(style="thin"))
 
     for row in range(row_num+1):
-        ws.cell(row=row+9, column=12).border = Border(right=lattice.right, top=lattice.top, bottom=lattice.bottom)
-        ws.cell(row=row+9, column=16).border = Border(right=lattice.right, top=lattice.top, bottom=lattice.bottom)
+        ws.cell(row=row+WRITE_START_ROW, column=12).border = Border(right=lattice.right, top=lattice.top, bottom=lattice.bottom)
+        ws.cell(row=row+WRITE_START_ROW, column=16).border = Border(right=lattice.right, top=lattice.top, bottom=lattice.bottom)
 
 def change_sheet_name(ws: Worksheet, new_sheet_name: str) -> None:
     if len(new_sheet_name) > 31:
@@ -167,3 +154,8 @@ def change_sheet_name(ws: Worksheet, new_sheet_name: str) -> None:
 
 def write_cell(ws: Worksheet, target_cell: str, data: int | str) -> None:
     ws[target_cell] = data
+
+def fill_color(ws: Worksheet, start_row: int, end_row: int, color: str) -> None:
+    for row in ws.iter_rows(min_row=start_row, max_row=end_row, min_col=2, max_col=2):
+        for cell in row:
+            cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
